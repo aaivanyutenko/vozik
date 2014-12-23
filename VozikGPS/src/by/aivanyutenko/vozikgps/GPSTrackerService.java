@@ -13,6 +13,7 @@ import android.content.Intent;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 
 public class GPSTrackerService extends IntentService {
@@ -23,7 +24,7 @@ public class GPSTrackerService extends IntentService {
 
 	@Override
 	protected void onHandleIntent(Intent intent) {
-		LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+		LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 		LocationListener locationListener = new LocationListener() {
 			@Override
 			public void onLocationChanged(Location location) {
@@ -32,13 +33,19 @@ public class GPSTrackerService extends IntentService {
 				double longitude = location.getLongitude();
 				float speed = location.getSpeed();
 				long timestamp = new Date().getTime();
-				String url = String.format(Locale.getDefault(), "http://5.231.39.118:8000/track?id_agent=%d&latitude=%f&longitude=%f&speed=%f&timestamp=%d", id_agent, latitude, longitude, speed, timestamp);
-				try {
-					HttpURLConnection con = (HttpURLConnection) new URL(url).openConnection();
-					con.getResponseCode();
-				} catch (MalformedURLException e) {
-				} catch (IOException e) {
-				}
+				final String url = String.format(Locale.getDefault(), "http://5.231.39.118:8000/track?id_agent=%d&latitude=%f&longitude=%f&speed=%f&timestamp=%d", id_agent, latitude, longitude, speed, timestamp);
+				new AsyncTask<Void, Void, Void>() {
+					@Override
+					protected Void doInBackground(Void... params) {
+						try {
+							HttpURLConnection con = (HttpURLConnection) new URL(url).openConnection();
+							con.getResponseCode();
+						} catch (MalformedURLException e) {
+						} catch (IOException e) {
+						}
+						return null;
+					}
+				}.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Void []) null);
 			}
 
 			@Override
@@ -53,7 +60,7 @@ public class GPSTrackerService extends IntentService {
 			public void onProviderDisabled(String provider) {
 			}
 		};
-		locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+		locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 10, locationListener);
 	}
 
 }
